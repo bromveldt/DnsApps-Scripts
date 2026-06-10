@@ -1,4 +1,3 @@
-Here's all the extracted text:
 PublicDNS.info test with the current dnscrypt-setup
 ---
 
