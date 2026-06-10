@@ -263,7 +263,6 @@ https://dnscheck.tools/
 [DNS Privacy Test](https://publicdns.info/dns-privacy-check.html) is amazingly complex and complete but I still need to get my head over the reason that enabling DNSSEC in DNSCrypt-proxy does not seem to produce the expected security. My metrics are decidedly modest:
 
 | **DNS Leak Detection** | Weight: 20% | Passed | Score: 100/100 | All 3 test rounds resolved through a single DNS server (146.70.82.3). No DNS leak detected. |
-
 | **Encrypted DNS (DoH/DoT)** | Weight: 20% | Warning | Score: 30/100 | DoH endpoints are reachable, but your DNS resolver is not a known encrypted DNS provider. Your queries are likely unencrypted. Enable DoH in your browser or switch to a privacy DNS. |
 | **DNSSEC Validation** | Weight: 10% | Warning | Score: 40/100 | Both test domains were unreachable. This may indicate network restrictions rather than DNSSEC validation. Results are inconclusive. |
 | **IPv6 Exposure (WebRTC)** | Weight: 10% | Passed | Score: 100/100 | No IPv6 addresses detected via WebRTC. Your device does not appear to expose IPv6 connectivity that could leak DNS queries. |
