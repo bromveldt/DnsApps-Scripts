@@ -1,6 +1,6 @@
 ## DNS Apps
 
-# The reason for the validator-cum-proxy set-up and the attendant coding effort
+### The reason for the validator-cum-proxy set-up and the attendant coding effort
 
 I am not at all obsessed by privacy but  on my Acer Aspire 5 notebook I have installed both DNSCrypt-proxy v2.1.16 and Unbound v1.25.1, both the latest versions as of May 2026.
 
@@ -12,15 +12,15 @@ To quote a comment by Patrick Mevzek (Sep 13, 2022):
 > - Do you want to have guarantees on data received? You need DNSSEC.
 > - And you can do both.
 
-# Why DNSCrypt-proxy
+### Why DNSCrypt-proxy
 
 DNSCrypt-proxy is a client that initiates encrypted connections (DNSCrypt, DoH, Anonymized DNS) to upstream resolvers. It provides caching, load balancing, filtering, and supports more protocols (including Anonymized DNS and ODoH)
 
-# Why Unbound
+### Why Unbound
 
 Unbound is a full-featured, local DNS resolver and cache. It can be configured to forward queries to a client like dnscrypt-proxy.
 
-# Installation
+### Installation
 
 As shown in the ArchWiki guide, the standard and recommended setup is:
 - *unbound* (on port 53, caching and validating)
@@ -28,9 +28,6 @@ As shown in the ArchWiki guide, the standard and recommended setup is:
 
 DNSCrypt-proxy handles encryption (DoH, DNSCrypt) and forwards to the upstream resolver.
 
-```PowerShell
-Set-ExecutionPolicy -scope Process -ExecutionPolicy RemoteSigned
-```
 
 Below I am using the imperative mode for simplicity :)
 
@@ -46,17 +43,32 @@ mklink /D /J dnscrypt-proxy dnscrypt-proxy-win64-2.1.16\win64
 mklink mkcert.exe mkcert-v1.4.4-windows-amd64.exe
 ```
 
-WinCS API needs to be installed and set up. With the optional update from October 28 2023? (KB5067036), Microsoft introduced a CLI tool for the WinCS API. 
-Install https://support.microsoft.com/en-us/topic/windows-configuration-system-wincs-apis-for-secure-boot-d3e64aa0-6095-4f8a-b8e4-fbfda254a8fe
+<details>
+  <summary>Preliminary Steps</summary>
 
-And apply the module F33E0C8E002:
+Set ExecutionPolicy to RemoteSigned
+
+```PowerShell
+Set-ExecutionPolicy -scope Process -ExecutionPolicy RemoteSigned
+```
+
+WinCS API needs to be installed and set up. With the optional update from October 28 2023? (KB5067036), Microsoft introduced a CLI tool for the WinCS API. 
+Install as explained at https://support.microsoft.com/en-us/topic/windows-configuration-system-wincs-apis-for-secure-boot-d3e64aa0-6095-4f8a-b8e4-fbfda254a8fe
+
+...and apply the module F33E0C8E002:
 
 ```PowerShell
 WinCsFlags.exe /apply --key "F33E0C8E002"
 WinCsFlags.exe /query --key F33E0C8E002
 ```
 
-Now install this PowerShell module:
+Check whether the Windows UEFI CA 2023 certificate is already present on your system:
+
+```PowerShell
+([System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI db).bytes) -match ‘Windows UEFI CA 2023’)
+```
+
+Install the UEFI CA 2023 PowerShell module:
 
 ```PowerShell
 Install-Module UEFIv2 -Force
@@ -73,7 +85,7 @@ Enable SecureBoot:
 Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecureBoot" -Name "AvailableUpdates" -Value 0x40
 ```
 
-Now, run the Scheduled Task Secure-Boot-Update.
+Now, run the Scheduled Task `Secure-Boot-Update`.
 
 One can also manually trigger the Secure Boot servicing task by following below steps: 
 
@@ -98,8 +110,8 @@ net start w32time
 
 In Registry Editor, navigate to HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Ole and look for or create these DWORD values:
 
-RemoteActivationTimeout (default is 30000 ms)
-LocalActivationTimeout (default is 30000 ms)
+- RemoteActivationTimeout (30000 ms by by default)
+- LocalActivationTimeout (30000 ms by default)
 
 Increase these values (e.g., to 60000 ms)
 
@@ -108,6 +120,7 @@ reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Ole" /v RemoteActivationTimeout /
 reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Ole" /v LocalActivationTimeout /t REG_DWORD /d 60000
 reg query HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Ole
 ```
+</details>
 ---
 Having created the symlinks go through the usual steps recommended in the project docs:
 
@@ -121,25 +134,63 @@ tasklist /fo table /svc  | findstr proxy
 dnscrypt-proxy.exe           20548 dnscrypt-proxy
 ```
 
+Set dnscrypt-proxy as an AUTO_START  (DELAYED) service.
+
+View the registry settings:
+```
+reg query HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\dnscrypt-proxy
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\dnscrypt-proxy
+    Type    REG_DWORD    0x10
+    Start    REG_DWORD    0x2
+    ErrorControl    REG_DWORD    0x0
+    ImagePath    REG_EXPAND_SZ    C:\Users\Bruno\LocalDnsApps\dnscrypt-proxy\dnscrypt-proxy.exe -config dnscrypt-proxy.toml
+    DisplayName    REG_SZ    DNSCrypt client proxy
+    ObjectName    REG_SZ    LocalSystem
+    Description    REG_SZ    Encrypted/authenticated DNS proxy
+    DelayedAutostart    REG_DWORD    0x1
+```
+
+Check port 53:
+
+```
+powershell -ExecutionPolicy Bypass Get-NetTCPConnection -LocalPort 53
+
+LocalAddress                        LocalPort RemoteAddress                       RemotePort State       AppliedSetting
+------------                        --------- -------------                       ---------- -----       --------------
+::1                                 53        ::                                  0          Listen
+127.0.0.1                           53        0.0.0.0                             0          Listen
+```
+
 Modifying the ImagePath command in the Windows registry - e.g. if the folder path was changed - does not seem to work, as it does for the unbound service:
 ```
 reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\DNSCrypt-proxy" /t REG_EXPAND_SZ /v ImagePath /d "C:\AppDevProjects\DnsApps\dnscrypt-proxy\dnscrypt-proxy.exe -config dnscrypt-proxy.toml -w service" /f
 ```
 
-The script needs to be executed.
+The scripts needs to be executed:
 
 ```
 service-uninstall && service-install
 ```
 
-My contribution was installing the certificates and referencing them in the 
+Also add connection anonymization.
+
+My contribution was installing the certificates and referencing them in the conf file.
 
 </details>
 
 <details>
   <summary>Unbound</summary>
 
-needs certificates so installed MkCert v1.4.4
+Unbound should run on port 53 once DNSCrypt-proxy is running on port 5353.
+
+Set Start mode to Manual (DEMAND_START).
+
+My contribution: restart-unbound.cmd
+
+The DNSCrypt-proxy service needs to be running for Unbound to forward to it. DNSCrypt client proxy does not write to the EventLog making it impossible to latch unbound onto a service start-up event.
+
+Unbound needs certificates to forward traffic, so install MkCert v1.4.4, create `localhost+2-key.pem` and `localhost+2.pem` running `mkcert -client` (i.e. "Generate a certificate for client authentication.")
+To see all MkCert options: `mkcert -help`
 
 To check if the services has been installed:
 
@@ -148,21 +199,21 @@ To check if the services has been installed:
 SERVICE_NAME: unbound
 DISPLAY_NAME: Unbound DNS validator
 ```
-Start the service: `net start unbound` or `unbound-control -c service.conf start`
 
-To check the registry settings for *unbound*, in particular _ImagePath_ that holds the command expression being executed:
+Start the service: `unbound-control -c service.conf start`  or simply `net start unbound`. It is not clear to me why the former be better than latter.
+
+Check the registry settings for *unbound*, in particular _ImagePath_ that holds the command expression being executed:
 
 ```
 reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\unbound"
 
 HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\unbound
     Type    REG_DWORD    0x10
-    Start    REG_DWORD    0x3
+    Start    REG_DWORD    0x2
     ErrorControl    REG_DWORD    0x1
     ImagePath    REG_EXPAND_SZ    "C:\AppDevProjects\DnsApps\unbound\unbound.exe" -c "C:\AppDevProjects\DnsApps\unbound\service.conf" -w service
     DisplayName    REG_SZ    Unbound DNS validator
     ObjectName    REG_SZ    LocalSystem
-    DelayedAutostart    REG_DWORD    0x1
 ```
 
 If more debugging is needed, modify the ImagePath, enabling the debug mode by adding the switches `-d -v` or `-d -vv` after `unbound.exe`:
@@ -199,3 +250,12 @@ Processor(s):                  1 Processor(s) Installed.
 ```
 
 </details>
+
+
+### Test chain with tests
+
+https://one.one.one.one/help/ (CloudFlare 1.1.1.1)
+https://dnsleaktest.com/
+https://dnscheck.tools/
+
+### Caveat
