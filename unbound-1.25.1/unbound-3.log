@@ -1,4 +1,0 @@
- 
-[1781110820] C:\AppDevProjects\DnsApps\unbound\unbound.exe[9936:0] info: start of service (unbound 1.25.1).
-[1781110822] C:\AppDevProjects\DnsApps\unbound\unbound.exe[9936:3] error: tcp send r: Software caused connection abort. for ::1 port 4559
-[1781111378] C:\AppDevProjects\DnsApps\unbound\unbound.exe[9936:0] info: service stopped (unbound 1.25.1).
