@@ -2,23 +2,38 @@
 
 ### The reason for the validator-cum-proxy set-up and the attendant coding effort
 
-I am not at all obsessed by privacy but  on my Acer Aspire 5 notebook I have installed both [DNSCrypt-proxy v2.1.16](https://github.com/DNSCrypt/dnscrypt-proxy/releases) and [Unbound v1.25.1](https://nlnetlabs.nl/projects/unbound/download/), both the latest versions as of May 2026.
+I am not at all obsessed by Internet privacy but on my Acer Aspire 5 notebook running Windows 11 I have installed both [DNSCrypt-proxy](https://github.com/DNSCrypt/dnscrypt-proxy/releases) v2.1.16 and [Unbound](https://github.com/DNSCrypt/dnscrypt-proxy/releases) v1.25.1, both the latest versions as of late May 2026.
 
 To quote a comment by Patrick Mevzek (Sep 13, 2022):
 
-> \[There is an] important difference (with lots of people trying to pretend it doesn't exist) between securing the transport (where DoH/DoT come into play) and securing the content (Where DNSSEC comes into play). When you talk about security
- and "beneficial" you need to list first what you are trying to protect yourself against?
+> \[There is an\] important difference (with lots of people trying to pretend it doesn't exist) between securing the transport (where DoH/DoT come into play) and securing the content (where DNSSEC comes into play). When you talk about security and "beneficial" you need to list first what you are trying to protect yourself against?
 > - Do you want people (ex: ISP) not to snoop on your DNS traffic? Then you might need DoH/DoT.
 > - Do you want to have guarantees on data received? You need DNSSEC.
 > - And you can do both.
 
 ### Why DNSCrypt-proxy
 
-DNSCrypt-proxy is a client that initiates encrypted connections (DNSCrypt, DoH, Anonymized DNS) to upstream resolvers. It provides caching, load balancing, filtering, and supports more protocols (including Anonymized DNS and ODoH)
+DNSCrypt-proxy is a client that initiates encrypted connections (DNSCrypt, DoH, Anonymized DNS) to upstream resolvers. It provides caching, load balancing, filtering, and supports more protocols (including Anonymized DNS and ODoH).
+
+To learn more about DNSCrypt-proxy:
+
+<https://dnscrypt.info/faq/>
 
 ### Why Unbound
 
 Unbound is a full-featured, local DNS resolver and cache. It can be configured to forward queries to a client like dnscrypt-proxy.
+
+To learn more about Unbound:
+
+- [https://nlnetlabs.nl/projects/unbound/download/](The Unbound project at nlnetlabs.nl)
+
+- [https://unbound.docs.nlnetlabs.nl/en/latest/manpages/unbound.conf.html](Unbound v1.25.1 unbound.conf documentation)
+
+- [https://docs.pi-hole.net/guides/dns/unbound/](unbound - Pi-hole documentation)
+
+- [https://github.com/unboundsecurity/unbound-integration/tree/master/public-key](Public key for Unbound integration)
+
+- [https://gist.github.com/jfrobbins/5c2dbceb81c33afc5b0bcbe0d3343692](jfrobbins/gpg-setup-and-use-guide.md)
 
 ### Installation
 
@@ -28,13 +43,11 @@ As shown in the ArchWiki guide, the standard and recommended setup is:
 
 DNSCrypt-proxy handles encryption (DoH, DNSCrypt) and forwards to the upstream resolver.
 
+After initial attempt of mixing files edited by myself and the distibution files in project DnsApps, I moved everything to DnsApps-Scripts. The out-of-the-box (or rather out-of-the-zipfile installations are assumed to still be in DnsApps.
+
 ### Docs:
 
 - [How to setup your own DNSCrypt server in less than 10 minutes · DNSCrypt/dnscrypt-proxy Wiki · GitHub](https://github.com/dnscrypt/dnscrypt-proxy/wiki/How-to-setup-your-own-DNSCrypt-server-in-less-than-10-minutes)
-
-- [Unbound v1.25.1 unbound.conf documentation](https://unbound.docs.nlnetlabs.nl/en/latest/manpages/unbound.conf.html)
-
-[unbound - Pi-hole documentation](https://docs.pi-hole.net/guides/dns/unbound/)
 
 [boot - Run a script on start up on Windows 10 - Super User](https://superuser.com/questions/954950/run-a-script-on-start-up-on-windows-10)
 
@@ -42,15 +55,18 @@ Below I am using the imperative mode for simplicity and conciseness :)
 
 ---
 After forking the code create symbolic links to the folders that had their version numbers in their names.
+
 Replacing them with new versions should be easy this way. I would still need to copy the artefacts I created, I know.
 
-In the DnsApps folder:
+In the DnsApps-Script folder:
 
 ```
 mklink /D /J unbound unbound-1.25.1
 mklink /D /J dnscrypt-proxy dnscrypt-proxy-win64-2.1.16\win64
 mklink mkcert.exe mkcert-v1.4.4-windows-amd64.exe
 ```
+
+Neither of those folders is committed to a Git repository.
 
 <details>
   <summary>Preliminary Steps</summary>
