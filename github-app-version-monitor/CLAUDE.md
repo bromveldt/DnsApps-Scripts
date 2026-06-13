@@ -1,0 +1,1 @@
+Write in modern Node.js avoiding legacy language features and outdates coding patterns. Optimize for speed. Suggest improvements. Warn of drawbacks of a particular coding approach.
