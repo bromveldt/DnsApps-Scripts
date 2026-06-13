@@ -1,3 +1,0 @@
- 
-[1781304150] C:\AppDevProjects\DnsApps\unbound\unbound.exe[17164:0] info: start of service (unbound 1.25.1).
-[1781344182] C:\AppDevProjects\DnsApps\unbound\unbound.exe[17164:3] error: tcp send r: Software caused connection abort. for ::1 port 8342
