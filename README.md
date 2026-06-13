@@ -304,3 +304,17 @@ https://dnscheck.tools/
 
 **Your DNS Privacy Grade: C — 64 / 100**
 [DNS Privacy Test results as of June 7, 2026](./dns-privacy-test.md)
+
+Setting the WLAN DNS server addresses to the Quad9 ones bumps up the score by just one(!) point.
+
+| **Test** | Weight | Result | Score | Comment |
+|--------|--------|--------|--------|--------|
+| **DNS Leak Detection** | 20% | Passed | 85/100 |
+| **Encrypted DNS (DoH/DoT)** | 20% | Warning | 30/100 |
+| **DNSSEC Validation** | 25% | Warning | 40/100 |
+| **IPv6 Exposure (WebRTC)** | 10% | Passed | 100/100 |
+| **ECH/ESNI Support** | 15% | Passed | 100/100 |
+| **DNS Server Identification** | 10% | Passed | 70/100 |
+
+**Your DNS Privacy Grade: C — 65 / 100**
+[DNS Privacy Test results as of June 13, 2026]
