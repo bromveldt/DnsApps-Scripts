@@ -172,23 +172,14 @@ echo Starting service '%SERVICE_NAME%'...
 :: ImagePath has multiple values due to its type REG_EXPAND_SZ
 :: If you don't like the command (you had set the switches to -d -vv -c), you can reset it to the default one by running:
 :: reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\unbound" /t REG_EXPAND_SZ /v ImagePath /d "\"C:\DnsApps\unbound\unbound.exe\" -c \"C:\DnsApps\unbound\service.conf\" -w service" /f
-for /F "tokens=3*" %%A in ('reg query "%REG_PATH%" /v "ImagePath"') DO (echo Running command: %%A %%B)
+for /F "tokens=3*" %%A in ('reg query "%REG_PATH%" /v "ImagePath"') DO (echo Service command: %%A %%B)
 :: Start the Windows service instead of using unbound-control
 echo Started %LOG_FILE_PATH%
 > "%LOG_FILE_PATH%" echo. && net start %SERVICE_NAME% 
 ::1>nul
 echo Started %SERVICE_NAME% [%ERRORLEVEL%] [%TAIL_LOG%]
 
-if %TAIL_LOG% neq 0 (
-  echo Waiting for service '%SERVICE_NAME%' to start...
-  :: Wait 5 secs for the service to start up and to write something into the log file
-  timeout /t 5 /nobreak >nul
-
-  :: Tail the log file displaying humand-readable timestamps
-  echo.
-  echo Log (local time):
-  powershell -ExecutionPolicy Bypass -File "%SCRIPT_DIRPATH%\view-unbound-log.ps1"
-)
+if %TAIL_LOG% neq 0 call:wait_and_tail_log
 echo.
 echo Done!
 :eof
@@ -220,7 +211,6 @@ echo After call:rotate_numbered_logfiles !num_files!
 ::> "%SCRIPT_DIRPATH%\unbound.log" echo.
 endlocal
 echo Out rotate_logfiles [%~1]
-::exit /B 0
 goto eof
 :: Define a callable code block
 :rotate_numbered_logfiles
@@ -363,7 +353,7 @@ echo In is_service_running
 setlocal EnableDelayedExpansion
 set "svc_name=%~1"
 ::sc query "%svc_name%
-for /F "tokens=3,4 delims=: " %%A in ('sc query "%svc_name%" ^| findstr "        STATE"') do (
+for /F "tokens=3,4 delims=: " %%A in ('sc query "!svc_name!" ^| findstr "        STATE"') do (
   echo Service status %%A
   if /I "%%A" == "RUNNING" (
     echo Service is running
@@ -376,7 +366,16 @@ for /F "tokens=3,4 delims=: " %%A in ('sc query "%svc_name%" ^| findstr "       
 endlocal
 echo Out is_service_running
 exit /B -1 :: no services found for the given name
-
+:: Define a callable code block
+:wait_and_tail_log
+echo Waiting for service '%SERVICE_NAME%' to start...
+:: Wait 5 secs for the service to start up and to write something into the log file
+timeout /t 5 /nobreak >nul
+:: Tail the log file displaying humand-readable timestamps
+echo.
+echo Log (local time):
+powershell -ExecutionPolicy Bypass -File "%SCRIPT_DIRPATH%\view-unbound-log.ps1"
+:: Define a callable code block
 :show_usage
 :: The first argument is the script name with filename extension, the second the script name without extension
 echo.
