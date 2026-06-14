@@ -13,9 +13,13 @@
  */
 import { chromium } from 'playwright';
 import { text } from 'node:stream/consumers';
-import fs from 'fs';
 import Path from 'path';
 
+import { toCacheFilename } from './cache-file-utils.js';
+import { loadPage } from './page-loader.js';
+import { inspectPage } from './page-parser.js';
+
+const url = 'https://github.com/FiloSottile/mkcert/releases';
 /**
  * Strings to display as a usage help
  */
@@ -94,87 +98,10 @@ function isUndefined(v) {
 function isDefined(v) {
   return !isUndefined(v);
 }
-/**
- * Construct a name for a file the HTML will be saved to, based in the `location`
- * @param {String} location 
- * @returns a leafname of the output file, e.g. /4test_mkcert.htm
- */
-function toFilename(location) {
-  let chunks = location.split('/');
-  let name = chunks.pop() || chunks.pop();  // handle potential trailing slash
 
-  console.log('Output filename=' + name);
-  return `4test_${name}.htm`;
-}
-function accessLocation(location) { // DELETE
 // https://github.com/FiloSottile/mkcert/releases/download/v1.4.4/mkcert-v1.4.4-windows-amd64.exe
-}
-/**
- * Verify if a path exists
- * Is this really way better than fs.existsSync? I'm not so sure.
- * @param {string} path 
- * @returns 
- */
-async function pathExists(filePath) {
-  return await fs.promises.access(filePath, fs.constants.F_OK)
-    .then(() => true)
-    .catch(() => false)
-}
-/**
- * Delete a filePath
- * @param {String} filePath 
- */
-async function deleteFile(filePath) {
-  await fs.unlink(filePath, err => {
-    if (err) {
-      console.error(err);
-    } else {
-      // File deleted successfully
-      console.log('Cool! Unlinked ' + filePath);
-    }
-  });
-}
-/**
- * Dumps the html as a write stream to a file
- * @param {string} filePath 
- * @param {import('playwright').Page} page 
- * @returns 
- */
-async function writeFile(filePath, page) {
-  try {
-    const html = await page.content();
-    console.log(`Saving to file ${filePath}`);
-    const ws = fs.createWriteStream(filePath, err => {
-      if (err) {
-        console.error(err);
-        return false;
-      }
-      console.log('Cool! Wrote to ' + filePath);
-      return true;
-    });
-    ws.end(html);
-  } catch (error) {
-    console.error('Error retrieving content from Page:');
-    console.error(error);
-    return false;
-  }
-}
-/**
- * Convert file contents to a Page object
- * @param {fs.ReadStream} filePath 
- * @returns a Page
- */
-async function readFile(filePath) {
-  try {
-    const html = await text(fs.createReadStream(filePath));
-    await page.setContent(html);
-    console.log('Done reading the file');
-    return content;
-  } catch (error) {
-    console.error(`Error reading file: ${error.message}`);
-    return null;
-  }
-}
+
+
 /**
  * If a local copy is available, do not access the remote URL
  * @param {import('playwright').Page} page 
@@ -185,41 +112,71 @@ async function getPage(page, url, cacheFilePath) {
   if (fs.existsSync(cacheFilePath)) {
     await page.setContent(fs.readFileSync(cacheFilePath, 'utf-8'));
   } else {
-    await page.goto(url);
-    fs.writeFileSync(cacheFile, await page.content());
+    await page.goto(url, {
+      waitUntil: "networkidle",
+    });
+    fs.writeFileSync(cacheFilePath, await page.content());
   }
 }
+
 /**
  * Scrapes the Playwright Page content:
  * Looks up various elements
  * @param {import('playwright').Page} page 
  * @returns 
  */
-function scrapePageContent(page) {
-  let applicationMain = page.locator('xpath=//div[@class="application-main"]//main[1]');
-  //const main = applicationMain.locator('xpath=//main');
-  let turboFrame = applicationMain.locator('xpath=//turbo-frame[@id="repo-content-turbo-frame"]');
-  let repoContent = turboFrame.locator('xpath=//div[@class="repository-content"]');
+async function scrapePageContent(page) {
+  console.log('Scraping... ' + page.url());
+  await page.content().then(html => {
+    console.log('HTML content length: ' + html.length);
+  }).catch(error => {
+    console.error('Error getting HTML content: ' + error.message);
+  }).finally(() => {
+    console.log('Done getting HTML content');
+  });
 
-  let div = repoContent.locator('xpath=//div[data-turbo-frame="repo-content-turbo-frame"]');
-  if (isDefined(div)) {
-    let link = div.locator('xpath=/a[@class="Link"]');
-    link.
-      if(isDefined(link)) {
-      // Get release version
-      let versionSpan = link.locator('xpath=/div[@data-view-component="true"]/span');
-      let versionSpanText = await versionSpan.textContent();
-      console.log('--- versionSpanText ' + versionSpanText);
-      // Get release date out of element <relative-time datetime="2022-04-26T17:51:05Z">s
-      let datetimeEl = div.locator('xpath=/preceding-sibling::div/relative-time[datetime]]');
-      let datetimeText = await datetimeEl.getAttribute('datetime');
-      console.log('--- datetimeText ' + datetimeText);
+  try {
+    //let applicationMain0 = await page.waitForSelector('div.application-main');
+    //console.log('applicationMain ' + applicationMain0.innerHTML());
+    console.log('applicationMain');
+    let applicationMain = page.locator('xpath=//div[@class="application-main"]//main[1]');
+    console.log('applicationMain ' + await applicationMain.innerHTML());
+    //const main = applicationMain.locator('xpath=//main');
+    let turboFrame = applicationMain.locator('xpath=//turbo-frame[@id="repo-content-turbo-frame"]');
+    console.log('turboFrame ' + await turboFrame.innerHTML());
+    //console.log('turboFrame html ' + turboFrame.getHTML());
+    let repoContent = turboFrame.locator('xpath=//div[@class="repository-content"]');
+    console.log('repoContent ' + repoContent.length);
+    let div = repoContent.locator('xpath=//div[data-turbo-frame="repo-content-turbo-frame"]');
+    console.log('div ' + div.length);
+    if (isDefined(div)) {
+      let link = div.locator('xpath=/a[@class="Link"]');
+      console.log('--- link ' + link.length);
+      if (isDefined(link)) {
+        // Get release version
+        let versionSpan = link.locator('xpath=/div[@data-view-component="true"]/span');
+        console.log('--- versionSpan ' + await versionSpan.innerHTML());
+        let versionSpanText = await versionSpan.textContent();
+        console.log('--- versionSpanText ' + versionSpanText);
+        // Get release date out of element <relative-time datetime="2022-04-26T17:51:05Z">s
+        let datetimeEl = div.locator('xpath=/preceding-sibling::div/relative-time[datetime]]');
+        console.log('--- datetimeEl ' + datetimeEl.length);
+        let datetimeText = await datetimeEl.getAttribute('datetime');
+        console.log('--- datetimeText ' + datetimeText.length);
 
-      return { "version": versionSpanText, "datetime": datetimeText };
+        console.log('Scraped OK... ');
+        return new Map()
+          .set("version", versionSpanText)
+          .set("datetime", datetimeText);
+      }
     }
-
-    return { "version": "n/a", "datetimeEl": "n/a" };
+  } catch (error) {
+    console.error(`Error parsing file: ${error.message}`);
   }
+  console.log('Scraped... ');
+  return new Map()
+    .set("version", "n/a")
+    .set("datetime", "n/a");
 }
 /**
  * Define some constants
@@ -248,12 +205,12 @@ const browser = await chromium.launch();
 for (const location of locations) {
   const tagsDest = location + '/tags';
   const releasesUri = location + '/releases';
-  const outfile = toFilename(location);
+  const outfile = toCacheFilename(location);
   console.log('--- releasesUri=' + releasesUri);
   console.log('---      outfile=' + outfile);
 
-  const outputFilePath = Path.join(process.cwd(), outfile);
-  const isFile = pathExists(outputFilePath);
+  const outputFilePath = asPath(outfile);
+  const isFile = await pathExists(outputFilePath);
   console.log(`outputFilePath ${outputFilePath}? ${isFile}`);
 
   const page = await browser.newPage();
@@ -280,15 +237,16 @@ for (const location of locations) {
   } else if (useHTML && isFile) {
     console.log('Okay, got useHTML && isFile');
     // Read from file and set page content
-    await readFile(outputFilePath);
+    await readFile(outputFilePath, page);
   } else {
     console.log('Not saving the HTML');
   }
+
   console.log('--- Getting Info from page');
-  const info = scrapePageContent(page);
+  const info = await scrapePageContent(page);
   console.log('--- Info: ' + info);
-  for (const [key, value] of info) {
-    console.log('Info kv:', key, value);
+  for (const a of info) {
+    console.log('Info kv:', a);
   }
 }
 await browser.close();

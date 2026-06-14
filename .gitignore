@@ -22,3 +22,5 @@ dnscrypt-proxy/dnscrypt-proxy.log
 dnscrypt-proxy-win64-2.1.16/win64/dnscrypt-proxy.log
 dnscrypt-proxy/dnscrypt-proxy.log
 dnscrypt-proxy/dnscrypt-proxy.log
+github-app-version-monitor/package-lock.json
+github-app-version-monitor/node_modules/.package-lock.json
