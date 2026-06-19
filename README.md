@@ -37,7 +37,7 @@ To learn more about Unbound:
 
 ### Installation
 
-As shown in the ArchWiki guide, the standard and recommended setup is:
+As mentioned in the ArchWiki guide, the standard and recommended setup is:
 - *unbound* (on port 53, caching and validating)
 - forwards queries to *dnscrypt-proxy* (e.g., on port 5353)
 
@@ -45,7 +45,18 @@ DNSCrypt-proxy handles encryption (DoH, DNSCrypt) and forwards to the upstream r
 
 After initial attempt of mixing files edited by myself and the distribution files in project DnsApps, I moved everything to DnsApps-Scripts. The out-of-the-box (or rather out-of-the-zipfile installations are assumed to still be in DnsApps.
 
-### Docs:
+Any artifacts are copied from DnsApps-Scripts\unbound to DnsApps\unbond and from `DnsApps-Scripts\dnscrypt-proxy` to `DnsApps\dnscrypt-proxy`
+
+### The Working Chain Set-Up
+
+1. **dnscrypt-proxy** starts automatically at boot
+2. **WMI** detects it reaching `Running` state (polls every 5 seconds)
+3. **restart-unbound.cmd** fires, starting unbound
+4. **unbound** forwards to `127.0.0.1:5353` (dnscrypt-proxy)
+5. **Windows** uses `127.0.0.1` as its DNS resolver (global Wi-Fi setting)
+6. **dnscrypt-proxy** routes queries through anonymizing relays to DNSCrypt upstream servers
+
+### Documentation:
 
 - [How to setup your own DNSCrypt server in less than 10 minutes · DNSCrypt/dnscrypt-proxy Wiki · GitHub](https://github.com/dnscrypt/dnscrypt-proxy/wiki/How-to-setup-your-own-DNSCrypt-server-in-less-than-10-minutes)
 
@@ -212,7 +223,38 @@ Unbound should run on port 53 once DNSCrypt-proxy is running on port 5353.
 
 Set Start mode to Manual (DEMAND_START).
 
-My contribution: restart-unbound.cmd
+My contribution:
+- `restart-unbound.cmd`, 
+- `view-unbound-log.ps1`,
+- `WatchServiceStart.mof` and 
+- `LaunchWatchServiceStart.ps1`
+
+The MOF script will start an Unbound service instance as soon as the DNSCrypt-proxy service is started.
+
+To view the results of LaunchWatchServiceStart.ps1, run
+
+```
+Get-CimInstance -Namespace root\subscription -ClassName __EventFilter |
+>>   Where-Object { $_.Name -like "*watch*" } |
+>>   Select-Object Name, Query | Format-List
+```
+or
+
+```
+Get-CimInstance -Namespace root\subscription -ClassName __EventFilter |
+Select-Object Name, Query | Format-List
+```
+
+which would return something like
+
+```
+Name  : SCM Event Log Filter
+Query : select * from MSFT_SCMEventLogEvent
+
+Name  : Watch_ServiceStart_DNSCrypt-Proxy
+Query : SELECT * FROM __InstanceModificationEvent WITHIN 5 WHERE TargetInstance ISA 'Win32_Service' AND TargetInstance.Name = 'dnscrypt-proxy' AND TargetInstance.
+        State = 'Running'
+```
 
 The DNSCrypt-proxy service needs to be running for Unbound to forward to it. DNSCrypt client proxy does not write to the EventLog making it impossible to latch unbound onto a service start-up event.
 
@@ -277,6 +319,9 @@ Processor(s):                  1 Processor(s) Installed.
 ```
 
 </details>
+
+Get-CimInstance -Namespace root\subscription -ClassName __EventFilter |
+>>   Select-Object Name, Query | Format-List
 
 
 ### Test chain with tests
