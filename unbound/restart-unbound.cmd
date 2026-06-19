@@ -5,31 +5,37 @@
 :: brusam, 31-5-2026
 :: See https://unbound.docs.nlnetlabs.nl/en/latest/getting-started/configuration.html
 :: ---------------------------------------------------
-:: Usage: restart-unbound.cmd [debug=1] [-tail=1 [-to=3] [-h] >restart-unbound.log 2>&1
+:: See bottom of the script for usage
 ::
-echo Args '%*'
+echo Args [%*]
 :: We need to read the %~0 before we start shifting below
-::%~nx1 expands %1 to a file name and extension.
-:: %~n1 expands %1 to a file name.
+:: %~nx1 expands %1 to a file name and extension.
+:: %~n1  expands %1 to a file name.
 set "SNE=%~nx0"
 set "SN=%~n0"
+::echo SNE='%SNE%'...
+::echo SN ='%SN%'...
 
-:: Define some constants parametrizable on the command line
-:: Set default values for the constants that are parametrizable: 0 = No, 1 = Yes
-set /A VERBOSE=1
+:: Set default values for the constants that are parametrizable: 0 = No, 1 = Yes.
+set /A _VERBOSE=1
 :: How many log files to keep at any given time; the value 0 will be ignored
-set /A MAX_LOGFILES=5
+set /A _MAX_LOGFILES=5
 :: Define if we need to dump some logging to STDOUT in the command prompt window, once an 'unbound' service is started
-set /A TAIL_LOG=1
+set /A _TAIL_LOG=1
 :: Define if we wait after the unbound service is restarted
-set /A TIME_OUT=3
+set /A _TIME_OUT=3
+::::::::::::::::::::::::::::::::::::::::::::::
+:: Verify if any params are to be considered
+::::::::::::::::::::::::::::::::::::::::::::::
 :read_args
-:: Your code using %1
-::for /f "delims= " %%P in ('%*') do echo Arg=%%P
-:: Check for any arguments to parametrize the constants above.
+:: Define some constants parametrizable on the command line.
+:: Check for any arguments that override the constants above.
 setlocal EnableDelayedExpansion
 set "ARG=%~1"
-echo Shifting '%ARG%'...
+echo Inspecting arg='!ARG!'...
+:: if one of the paramaters is /? or /h display the usage message and exit
+if "x!ARG!" == "x/?" goto show_usage
+if "x!ARG!" == "x/h" goto show_usage
 if "x!ARG!" == "x" (
   echo All parameters have been read
   goto define_constants
@@ -58,10 +64,8 @@ if "!TRUNC_MAX!" == "/max" (
   set /A MAX_LOGFILES=%~2
   shift && goto cont_shift
 )
-:: if one of the paramaters is /? or /h display the usage message and exit
-if "%VAL%" == "/?" goto show_usage "%SNE%" "%SN%"
-if "%VAL%" == "/h" goto show_usage "%SNE%" "%SN%"
 :: Unexpected param
+:handle_unexpected_param
 echo ERROR: Invalid argument/option - '%ARG%'.
 echo Type "%SN% /?" for usage.
 shift
@@ -71,14 +75,17 @@ shift
 goto read_args
 
 :define_constants
+if not defined VERBOSE set /A VERBOSE=%_VERBOSE%
+if not defined MAX_LOGFILES set /A MAX_LOGFILES=%_MAX_LOGFILES%
+if not defined TIME_OUT set /A TIME_OUT=%_TIME_OUT%
+if not defined TAIL_LOG set /A TAIL_LOG=%_TAIL_LOG%
 echo Constants set:
-if defined VERBOSE echo VERBOSE %VERBOSE%
-if defined TIME_OUT echo TIME_OUT %TIME_OUT%
-if defined TAIL_LOG echo TAIL_LOG %TAIL_LOG%
-if defined MAX_LOGFILES echo MAX_LOGFILES %MAX_LOGFILES%
+echo VERBOSE %VERBOSE%
+echo TIME_OUT %TIME_OUT%
+echo TAIL_LOG %TAIL_LOG%
+echo MAX_LOGFILES %MAX_LOGFILES%
 :: Define more constants
-echo Setting more constants
-::goto eof
+echo Setting more constants now
 set "PROXY_SERVICE_NAME=dnscrypt-proxy"
 set "SERVICE_NAME=unbound"
 ::
@@ -97,13 +104,6 @@ set "LOG_FILE_PATH=%SCRIPT_DIRPATH%\%LOG_FILE_NAME%"
 :: THere is no directory path as it is a target for the 'ren' command
 set "LOG_FILE_NAME_N=%SERVICE_NAME%-@@.log"
 set "REG_PATH=HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\%SERVICE_NAME%"
-::::::::::::::::::::::::::::::::::::::::::::::
-:: Verify if any params are to be considered
-::::::::::::::::::::::::::::::::::::::::::::::
-
-
-
-
 ::::::::::::::::::::::::::::::::::::::::::::::
 :: Done with the variables, start rocessing
 ::::::::::::::::::::::::::::::::::::::::::::::
@@ -370,20 +370,23 @@ exit /B -1 :: no services found for the given name
 :wait_and_tail_log
 echo Waiting for service '%SERVICE_NAME%' to start...
 :: Wait 5 secs for the service to start up and to write something into the log file
-timeout /t 5 /nobreak >nul
+timeout /t %TIME_OUT% /nobreak >nul
 :: Tail the log file displaying humand-readable timestamps
 echo.
 echo Log (local time):
 powershell -ExecutionPolicy Bypass -File "%SCRIPT_DIRPATH%\view-unbound-log.ps1"
+goto eof
 :: Define a callable code block
 :show_usage
 :: The first argument is the script name with filename extension, the second the script name without extension
 echo.
-echo.Usage: %~1 [/debug=1] [/tail[log]=1] [/max[log]=5] [/to=3] [/?^|/h] ^>%~2.log 2^>^&1
+setlocal EnableDelayedExpansion
+echo.Usage: %SNE% [/debug=%_VERBOSE%] [/tail[log]=%_TAIL_LOG%] [/max[log]=%_MAX_LOGFILES%] [/to=%_TIME_OUT%] [/?^|/h] ^>%SN%.log 2^>^&1
+endlocal
 echo.  where /debug - debug level; default=1, 0 suppresses any debugging statements
 echo.        /tail or /taillog - if the service log (that does not feature any readable timestamps) should be tailed with datetimes converted
 echo.        /max or /maxlog - how many log files to keep, including %LOG_FILE_NAME%
-echo.        /to - if and how many seconds to wait after the service end; default: no
+echo.        /to - if and how many seconds to wait after the service end; default: 3
 echo.        /? alias /h - display the usage message and ignore all other arguments 
 goto eof
 :: == END OF SCRIPT ==
