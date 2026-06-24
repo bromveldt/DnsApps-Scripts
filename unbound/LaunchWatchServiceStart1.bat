@@ -1,4 +1,5 @@
 # Full debug script (run in *Elevated* PowerShell)
+Write-Host $PSScriptRoot
 $Path = "C:\Users\Bruno\LocalDnsApps\unbound\WatchServiceStart.mof"
 # MOF content (with #PRAGMA AUTORECOVER)
 $Mof = @'

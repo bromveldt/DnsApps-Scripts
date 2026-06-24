@@ -1,0 +1,66 @@
+netsh lan show interfaces
+
+The Wired AutoConfig Service (dot3svc) is not running.
+powershell .\fix-dot3svc.ps1
+
+https://windowsforum.com/threads/windows-11-upgrades-leave-802-1x-wired-policy-missing-dot3svc.403810/
+gpupdate /force
+Updating policy...
+
+Computer Policy update has completed successfully.
+User Policy update has completed successfully.
+
+
+netsh lan show interfaces
+
+There are 2 interfaces on the system:
+
+    Name             : Ethernet
+    Description      : Realtek PCIe GbE Family Controller
+    GUID             : a8db693e-9cce-40e1-977d-2ea219d370f5
+    Physical Address : 08-8F-C3-65-9C-BD
+    State            : Network cable unplugged
+
+    Name             : Ethernet 4
+    Description      : VirtualBox Host-Only Ethernet Adapter
+    GUID             : ac0f803f-d81b-4475-82ff-6cf14a5309f7
+    Physical Address : 0A-00-27-00-00-0D
+    State            : Connected. Network does not support authentication.
+
+
+sc stop dot3svc && sc start dot3svc
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
