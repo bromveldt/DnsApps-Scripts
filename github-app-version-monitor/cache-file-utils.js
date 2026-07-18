@@ -1,13 +1,16 @@
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 import Path from 'path';
 
 const __dirname = Path.dirname(fileURLToPath(import.meta.url));
-//const cacheReleaseFile = Path.join(__dirname, '4test_mkcert.htm');
-//const cacheDownloadFile = Path.join(__dirname, '4test_mkcert_latest.htm');
 
 export function asPath(cacheFilePath) {
     console.log('asPath __dirname=' + __dirname);
     return Path.join(__dirname, cacheFilePath);
+}
+export function normalize(location) {
+    let chunks = location.split('/');
+    return chunks.pop() || chunks.pop();  // handle potential trailing slash
 }
 /**
  * Construct a name for a file the HTML will be saved to, based in the `location`, e.g. mkcert
@@ -15,11 +18,16 @@ export function asPath(cacheFilePath) {
  * @returns a leafname of the output file, e.g. /4test_mkcert.htm
  */
 export function toCacheFilename(location) {
-    let chunks = location.split('/');
-    let name = chunks.pop() || chunks.pop();  // handle potential trailing slash
-
+    let name = normalize(location);
     console.log('toCacheFilepath:', name);
     return `4test_${name}.htm`;
+}
+
+export function toTreeFilename(location) {
+    let name = normalize(location);
+
+    console.log('toTreeFilename:', name);
+    return `4test_${name}_tree.htm`;
 }
 export function toPrevRunFilename(location) {
     let chunks = location.split('/');
@@ -47,8 +55,8 @@ export async function pathExists(filePath) {
         .catch(() => false)
 }
 export async function countDiff(prevRes, currRes) {
-    console.log('Now    | currRes:', currRes);
-    console.log('Before | prevRes:', prevRes);
+    console.log('countDiff currRes:', currRes);
+    console.log('countDiff prevRes:', prevRes);
     let count = 0;
     Object.keys(prevRes).forEach(function (key) {
         // It is easier to spot the differences if you print one value underneath another

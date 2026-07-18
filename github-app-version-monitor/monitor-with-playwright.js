@@ -14,8 +14,9 @@
 import { chromium } from 'playwright';
 import { text } from 'node:stream/consumers';
 import Path from 'path';
+import fs from 'fs';
 
-import { toCacheFilename } from './cache-file-utils.js';
+import { toCacheFilename, asPath, pathExists } from './cache-file-utils.js';
 import { loadPage } from './page-loader.js';
 import { inspectPage } from './page-parser.js';
 
