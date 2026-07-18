@@ -61,6 +61,7 @@ echo %DATE% %TIME% Restarting validator
 :do_restart_validator
 pushd
 restart-unbound.cmd /debug=1 /tail=1 >restart-unbound.log 2>&1
+echo Result: %ErrorLevel%
 popd
 :eof
 endlocal
