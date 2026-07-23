@@ -256,7 +256,119 @@ Query : SELECT * FROM __InstanceModificationEvent WITHIN 5 WHERE TargetInstance 
         State = 'Running'
 ```
 
+
 The DNSCrypt-proxy service needs to be running for Unbound to forward to it. DNSCrypt client proxy does not write to the EventLog making it impossible to latch unbound onto a service start-up event.
+
+Corrrection (7/21/2026): I ended up making Unbound depend on DNSCrypt client proxy because the MOF script had no effect
+
+```powershell
+sc config unbound depend= dnscrypt-proxy
+[SC] ChangeServiceConfig SUCCESS
+```
+and
+
+```powershell
+sc qc unbound
+[SC] QueryServiceConfig SUCCESS
+
+SERVICE_NAME: unbound
+TYPE               : 10  WIN32_OWN_PROCESS
+START_TYPE         : 2   AUTO_START
+ERROR_CONTROL      : 1   NORMAL
+BINARY_PATH_NAME   : "C:\AppDevProjects\DnsApps\unbound\unbound.exe" -c "C:\AppDevProjects\DnsApps\unbound\service.conf" -w service
+LOAD_ORDER_GROUP   :
+TAG                : 0
+DISPLAY_NAME       : Unbound DNS validator
+DEPENDENCIES       : dnscrypt-proxy
+SERVICE_START_NAME : LocalSystem
+```
+
+However, this leads to
+
+```
+service-restart.bat
+[2026-07-21 13:24:24] [FATAL] Failed to stop DNSCrypt client proxy: A stop control has been sent to a service that other running services are dependent on.
+
+Windows IP Configuration
+
+Successfully flushed the DNS Resolver Cache.
+[2026-07-21 13:24:24] [FATAL] Failed to start DNSCrypt client proxy: An instance of the service is already running.
+```
+
+So I had to remove the dependency:
+
+```
+sc config unbound depend= /
+```
+
+`shell:startup` If you are configuring the startup behavior for the current user. The path corresponds to `%UserProfile%\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup`
+
+`shell:common` startup If you are configuring the startup behavior for all users using the device. The path corresponds to `%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup`
+
+Startup programs are under `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run`
+Enable/disable apps in `HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run`
+
+The startup applications in Windows can be stored in specific registry locations.
+
+For applications that run at startup for all users, the registry paths are:
+
+```
+HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Run
+HKLM\Software\Microsoft\Windows\CurrentVersion\Run
+```
+
+For applications that run at startup for the current user, the registry path is:
+
+```
+HKCU\Software\Microsoft\Windows\CurrentVersion\Run
+```
+
+### Removed delayed autostart for Windows services
+
+https://stackoverflow.com/questions/11015189/automatic-vs-automatic-delayed-start
+
+<blockquote>
+&lsaquo;&hellip;&rsaquo;services set to <em>Automatic</em> will start during the boot process, while services set to start as <em>Delayed</em> will start shortly after boot.
+
+Starting your service <em>Delayed</em> improves the boot performance of your server and has security benefits which are outlined in <a href="https://web.archive.org/web/20151221180925/http://blogs.technet.com/b/askperf/archive/2008/02/02/ws2008-startup-processes-and-delayed-automatic-start.aspx" title="blogs.technet.com/b/askperf">the article</a> Adriano linked to in the comments.
+
+<strong>Update</strong>: "shortly after boot" is actually 2 minutes after the last "automatic" service has started, by default. This can be configured by a registry key, according to Windows Internals and other sources (3,4).
+
+The registry keys of interest (At least in some versions of windows) are:
+`HKLM\SYSTEM\CurrentControlSet\services\<service name>\DelayedAutostart` will have the value 1 if delayed, 0 if not.
+`HKLM\SYSTEM\CurrentControlSet\services\AutoStartDelay` or `HKLM\SYSTEM\CurrentControlSet\Control\AutoStartDelay` (on Windows 10): (DWORD) decimal number of milliseconds to wait, may need to create this one. Applies globally to all <em>Delayed</em> services.
+</blockquote>
+
+```
+reg query HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\DNSCrypt-proxy /v DelayedAutostart
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\DNSCrypt-proxy
+DelayedAutostart    REG_DWORD    0x1
+```
+
+I find 2 minutes after the last autostart service to be somewhat too long, but instead of modifying the general setting, I removed just the *Delayed* autostart for the DNSCrypt-proxy service:
+
+```
+reg query HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\DNSCrypt-proxy /v Start
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\DNSCrypt-proxy
+    Start    REG_DWORD    0x2
+    
+reg query HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\DNSCrypt-proxy /v DelayedAutostart
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\DNSCrypt-proxy
+DelayedAutostart    REG_DWORD    0x0
+```
+
+DNSCrypt-proxy is configured not to write into the Windows Event log (it has its own log file). We run a task at system start up that awaits the launch of DNSCrypt-proxy and sends an even. Task "Unbound start" runs the script `task-restart-unbound.cmd` in the Unbound project, which creates an event with the "Schedule Type" set to "At system start up"
+
+```
+EventCreate /T INFORMATION /ID 2 /L APPLICATION /SO "DNSCrypt-proxy event" /D "%PROXY_SVC_NAME% is running - launch Unbound service"
+```
+ 
+Another task "Launch Unbound on DNSCrypt-proxy event" is triggered by this "DNSCrypt-proxy event" and runs the script `run-restart-unbound.log`
+
+### MkCert
 
 Unbound needs certificates to forward traffic, so install [MkCert v1.4.4](https://github.com/FiloSottile/mkcert), create `localhost+2-key.pem` and `localhost+2.pem` running `mkcert -client` (i.e. "Generate a certificate for client authentication.")
 To see all MkCert options: `mkcert -help`
@@ -269,7 +381,7 @@ SERVICE_NAME: unbound
 DISPLAY_NAME: Unbound DNS validator
 ```
 
-Start the service: `unbound-control -c service.conf start`  or simply `net start unbound`. It is not clear to me why the former be better than latter.
+Start the service: `unbound-control -c service.conf start` or simply `net start unbound`. It is not entirely clear to me why the former be better than latter.
 
 Check the registry settings for *unbound*, in particular _ImagePath_ that holds the command expression being executed:
 

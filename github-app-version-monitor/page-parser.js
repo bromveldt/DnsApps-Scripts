@@ -183,3 +183,57 @@ async function inspectHrefAttribute(linkAnchor, result) {
         })
         .then(href => result['href'] = href);
 }
+
+
+
+
+export async function inspectTreePage(page, result= { content: '', error: ''}) {    // Test each locator in isolation
+    const turbo_frames = page.locator('xpath=//turbo-frame');
+    //const turbo_frameCount =
+    await turbo_frames.count()
+        .then(count => {
+            console.log('Tree turbo_frames count:', count);
+            assert.strictEqual(count, 1);
+        }).catch(error => {
+            console.error('Error counting tree turbo_frames:', error);
+            result['error'] = error.toString();
+            return result;
+        });
+    await inspectTreeTurboFrame(turbo_frames.first())
+        .then(data => {
+            console.log('data:', data);
+            result['content'] = data.toString();
+        })
+        .catch(error => {
+            console.error('Error inspecting frame:', error);
+            result['error'] = error.toString();
+    });
+
+    return result;
+}
+
+async function inspectTreeTurboFrame(turbo_frame, result) {
+    // Find sections
+    const scripts = turbo_frame.locator('xpath=.//script[@type="application/json"]');
+    await scripts.count().then(count => {
+        console.log('scripts count:', count);
+        assert.notEqual(count, 0);
+        assert.notEqual(count, 1);
+    })
+    .catch(error => {
+            console.error('Error counting scripts:', error);
+            result['error'] = error.toString();
+        });
+    // All we need is the first section
+    //await inspectSection(scripts.first(), result);JSON.parse()
+    const script = scripts.first();
+    console.log('scripts.first type:', await script.content() );
+    console.log('script k:',Object.keys(script));
+     const scriptJson = JSON.stringify(script);
+     for (const e in script.entries) {
+         console.log('script e:', e );
+     }
+
+    console.log('scripts.first html:', scriptJson );
+    return scripts.first();
+}

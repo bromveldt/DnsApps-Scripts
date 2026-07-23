@@ -31,16 +31,25 @@
 ## Added by brusam on 29-5-2026
 ## Removed the IPv6 addresses as non reachable and quad9 as lethargic
 ## For server names also see https://github.com/dnscrypt/dnscrypt-resolvers
+## and https://www.dnscry.pt/public-resolvers/
+## and https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md
 server_names = [
-  #'dnsforge.de',                   # Falkenstein, Saxony - removed as a DoH server on 5-6-2026 to introduce anonymization throughout
-  'cs-dus',                        # Dusseldorf https://cryptostorm.is/
   'cs-de',	                       # Frankfurt
-  'dnscry.pt-dusseldorf02-ipv4',   # Best dnscry latency
+  'dnsforge.de-nofilter',
+  'dns.digitalsize.net',
+  'dnsbunker',
   'dnscry.pt-dusseldorf-ipv4',
-  'dct-de2',                       # Karlsruhe - DNSCrypt, no filter, no logs, DNSSEC support
-  'dnscry.pt-luxembourg-ipv4'	   # Luxembourg - DNSCrypt, no filter, no logs, DNSSEC support
+  'dnscry.pt-dusseldorf02-ipv4',   # Best dnscry latency
+  'dnscry.pt-dusseldorf03-ipv4',
+  ##'dnscry.pt-frankfurt-ipv4',
+  'dnscry.pt-frankfurt02-ipv4'
 ]
-
+## 'dnsforge.de',                   # Falkenstein, Saxony - removed as a DoH server on 5-6-2026 to introduce anonymization throughout
+## Removed dnscry.pt-luxembourg-ipv4 due to recurrent [dnscry.pt-luxembourg-ipv4] TIMEOUT - brusam 20-07-2026
+## also due to [dct-de2] the key validity period for this server is excessively long (270 days), significantly reducing reliability and forward security.
+## Removed dnscry.pt-eygelshoven-ipv4 due to recurrent 156ms - brusam 21-07-2026
+## Removed cs-dus due to recurrent 143ms / 119ms - brusam 21-07-2026
+##
 ## List of local addresses and ports to listen to. Can be IPv4 and/or IPv6.
 ## Example with both IPv4 and IPv6:
 ## listen_addresses = ['127.0.0.1:53', '[::1]:53']
@@ -48,7 +57,7 @@ server_names = [
 ## To listen to all IPv4 addresses, use `listen_addresses = ['0.0.0.0:53']`
 ## To listen to all IPv4+IPv6 addresses, use `listen_addresses = ['[::]:53']`
 
-listen_addresses = ['127.0.0.1:5353', '[::1]:5353']    ## moved to port 5335
+listen_addresses = ['127.0.0.1:5353', '[::1]:5353']    ## moved to port 5353
 #listen_addresses = ['127.0.0.1:53', '[::1]:53']
 
 ## Maximum number of simultaneous client connections to accept
@@ -197,9 +206,9 @@ keepalive = 30
 ## 'first': Always use the fastest server.
 ## 'random': Randomly choose from all servers.
 ## The response quality still depends on the server itself.
-
 # lb_strategy = 'wp2'
 lb_strategy = 'p2' ## Set by brusam on 29-5-2026
+# lb_strategy = 'first' ## Set by brusam on 21-7-2026
 
 ## Set to `true` to constantly try to estimate the latency of all the resolvers
 ## and adjust the load-balancing parameters accordingly, or to `false` to disable.
@@ -221,7 +230,7 @@ lb_strategy = 'p2' ## Set by brusam on 29-5-2026
 ## Log level (0-6, default: 2 - 0 is very verbose, 6 only contains fatal errors)
 
 # log_level = 2
-log_level = 2                 ## Enabled by brusam on 29-5-2026
+log_level = 1                   ## Modified by brusam on 29-5-2026, 20-7-2026
 
 ## Log file for the application, as an alternative to sending logs to
 ## the standard system logging service (syslog/Windows event log).
@@ -233,18 +242,16 @@ log_file = 'dnscrypt-proxy.log' ## Enabled by brusam on 29-5-2026
 
 ## When using a log file, only keep logs from the most recent launch.
 
-# log_file_latest = true
 log_file_latest = true          ## Enabled by brusam on 29-5-2026
 
 ## Use the system logger (syslog on Unix, Event Log on Windows)
 
-# use_syslog = true
-
+use_syslog = false              ## Enabled by brusam on 20-7-2026, disabled on 21-7-2026 because an event will be sent on restart
 
 ## Automatic log files rotation
 
 # Maximum log files size in MB - Set to 0 for unlimited.
-log_files_max_size = 10
+log_files_max_size = 6
 
 # How long to keep backup files, in days
 log_files_max_age = 7
@@ -927,38 +934,52 @@ fragments_blocked = [
 ## Let's anonymize using relays in the general vicinity of Cologne
 ##
 ## anon-cs-dus | Dusseldorf https://cryptostorm.is/ | sdns://gRI4OS4xNjMuMjIxLjE4MTo0NDM
+## anon-cs-belgium — sdns://gREzNy4xMjAuMjM2LjExOjQ0Mw. Brussels
+## anon-cs-de | Frankfurt https://cryptostorm.is/ | sdns://gQ8xNDYuNzAuODIuMzo0NDM
+## anon-cs-nl | Netherlands https://cryptostorm.is/ | sdns://gRExODUuMTA3LjgwLjg0OjQ0Mw
+## anon-serbica | Netherlands https://litepay.ch | sdns://gRMxODUuNjYuMTQzLjE3ODo1MzUz
 ## dnscry.pt-dusseldorf-ipv4 | Dusseldorf | sdns://AQcAAAAAAAAADTUuMTc1LjE4MC4xNzEg_5w5GH6bnmpKPcqtR58x5VHe2qD5-mSZeGIsqaukhr4ZMi5kbnNjcnlwdC1jZXJ0LmRuc2NyeS5wdA
 ## dnscry.pt-dusseldorf02-ipv4 | Dusseldorf | sdns://AQcAAAAAAAAADTM3LjExNC41OC4xMTUgWAo_MyYybZGGBQKsA41WpC5TjjpfvgviHteGEKBXNIwZMi5kbnNjcnlwdC1jZXJ0LmRuc2NyeS5wdA
 ## dnscry.pt-dusseldorf03-ipv4 | Dusseldorf | sdns://AQcAAAAAAAAADTExOC45MS4xODQuODkgBVOdxEWkG9yUyaviAaCbPJMqAG36WK_rVLkYvKSqCgwZMi5kbnNjcnlwdC1jZXJ0LmRuc2NyeS5wdA
-## dnscry.pt-anon-luxembourg-ipv4 | DNSCrypt, no filter, no logs, DNSSEC support | sdns://gQw0NS44MC4yMDkuNTU
-## anon-cs-de | Frankfurt https://cryptostorm.is/ | sdns://gQ8xNDYuNzAuODIuMzo0NDM
+## dnscry.pt-anon-frankfurt-ipv4 | sdns://gQw0NS44Mi4xMjAuNjE
 ## dnscry.pt-anon-frankfurt02-ipv4 | Frankfurt 02 | sdns://gQ00NS4xNDcuNTEuMTIz
-## dnscry.pt-anon-eygelshoven-ipv4 | Eygelshoven, Limburg, NL | sdns://gQw5My45NS4xMTUuMjE
-## anon-cs-nl | Netherlands https://cryptostorm.is/ | sdns://gRExODUuMTA3LjgwLjg0OjQ0Mw
-## anon-serbica | Netherlands https://litepay.ch | sdns://gRMxODUuNjYuMTQzLjE3ODo1MzUz
-## anon-scaleway | France (@jedisct1) | sdns://gRIyMTIuNDcuMjI4LjEzNjo0NDM
-## anon-scaleway2 | France @jedisct1 | sdns://gRMxNjMuMTcyLjE4MC4xMjU6NDQz
-
+## dnscry.pt-anon-jena-ipv4 — sdns://gQs4MS43LjExLjI0Ng
+## dnscry.pt-anon-nuremberg-ipv4 — sdns://gQ0yMDIuNjEuMjM2LjY3 (~400 km)
+## dnscry.pt-anon-munich-ipv4 — sdns://gQ0xOTQuMzkuMjA1LjEw (~570 km)
+## dnscry.pt-anon-molln-ipv4 — sdns://gQ05MS4xMDguODAuMTU5 (near Hamburg, ~450 km)
+##
+## dnscry.pt-frankfurt-ipv4 | sdns://AQcAAAAAAAAADDQ1LjgyLjEyMC42MSD79MPkuIliP7zrXMgYVK5wcSD_shP7dPfHx9haFaux6RkyLmRuc2NyeXB0LWNlcnQuZG5zY3J5LnB0
+## dnscry.pt-frankfurt02-ipv4 | sdns://AQcAAAAAAAAADTQ1LjE0Ny41MS4xMjMgIXwiAp3nzMSapyRop7AbWNG8rFfD1aGhvvGSXFdfv24ZMi5kbnNjcnlwdC1jZXJ0LmRuc2NyeS5wdA
+## anon-kama | France | sdns://gQ4xMzcuNzQuMjIzLjIzNA
 routes = [
     { server_name='cs-dus', via=[										# Dusseldorf
+								  'sdns://AQcAAAAAAAAADTUuMTc1LjE4MC4xNzEg_5w5GH6bnmpKPcqtR58x5VHe2qD5-mSZeGIsqaukhr4ZMi5kbnNjcnlwdC1jZXJ0LmRuc2NyeS5wdA',
+								  'sdns://AQcAAAAAAAAADTM3LjExNC41OC4xMTUgWAo_MyYybZGGBQKsA41WpC5TjjpfvgviHteGEKBXNIwZMi5kbnNjcnlwdC1jZXJ0LmRuc2NyeS5wdA',
+								  'sdns://AQcAAAAAAAAADTExOC45MS4xODQuODkgBVOdxEWkG9yUyaviAaCbPJMqAG36WK_rVLkYvKSqCgwZMi5kbnNjcnlwdC1jZXJ0LmRuc2NyeS5wdA',
+								  'sdns://gQs4MS43LjExLjI0Ng',				# dnscry.pt-anon-jena-ipv4
 								  'sdns://gRI4OS4xNjMuMjIxLjE4MTo0NDM',     # anon-cs-dus
-								  'sdns://gQw5My45NS4xMTUuMjE',             # dnscry.pt-anon-eygelshoven-ipv4
-								  'sdns://gRExODUuMTA3LjgwLjg0OjQ0Mw',		# anon-cs-nl 
-								  'sdns://gRMxODUuNjYuMTQzLjE3ODo1MzUz'		# anon-serbica
+								  'sdns://gREzNy4xMjAuMjM2LjExOjQ0Mw',		# anon-cs-belgium 
+								  'sdns://gRMxODUuNjYuMTQzLjE3ODo1MzUz'		# anon-serbica (NL)
 								] },
     { server_name='cs-de',  via=[										# Frankfurt
 								  'sdns://gQ8xNDYuNzAuODIuMzo0NDM',			# anon-cs-de
-								  'sdns://gQ00NS4xNDcuNTEuMTIz'				# dnscry.pt-anon-frankfurt02-ipv4
+								  'sdns://gQ00NS4xNDcuNTEuMTIz',			# dnscry.pt-anon-frankfurt02-ipv4
+								  'sdns://gQ05MS4xMDguODAuMTU5'				# dnscry.pt-anon-molln-ipv4
 								] },
-    { server_name='dct-de2',  via=[										# Karlsruhe -> France, Limburg
-								  'sdns://gRIyMTIuNDcuMjI4LjEzNjo0NDM',     # anon-scaleway
-                                  'sdns://gRMxNjMuMTcyLjE4MC4xMjU6NDQz',	# anon-scaleway2
-								  'sdns://gQw5My45NS4xMTUuMjE'				# dnscry.pt-anon-eygelshoven-ipv4
+    { server_name='dnscry.pt-frankfurt-ipv4',  via=[					# Frankfurt
+								  'sdns://gQw0NS44Mi4xMjAuNjE', 			# dnscry.pt-anon-frankfurt-ipv4
+								  'sdns://gQ00NS4xNDcuNTEuMTIz', 			# dnscry.pt-anon-frankfurt02-ipv4
+								  'sdns://gQ0yMDIuNjEuMjM2LjY3',			# dnscry.pt-anon-nuremberg-ipv4
+								  'sdns://gQs4MS43LjExLjI0Ng',				# dnscry.pt-anon-jena-ipv4
+								  'sdns://gQ8xNDYuNzAuODIuMzo0NDM'  		# anon-cs-de
 								] },
-    { server_name='dnscry.pt-luxembourg-ipv4',  via=[					# Luxembourg -> Limburg
-								  'sdns://gQw0NS44MC4yMDkuNTU',          	# dnscry.pt-anon-luxembourg-ipv4
-								  'sdns://gQw5My45NS4xMTUuMjE'				# dnscry.pt-anon-eygelshoven-ipv4
-								] },								  
+    { server_name='dnscry.pt-frankfurt02-ipv4',  via=[					# Frankfurt
+								  'sdns://gQ00NS4xNDcuNTEuMTIz',			# dnscry.pt-anon-frankfurt02-ipv4
+								  'sdns://gQw0NS44Mi4xMjAuNjE', 			# dnscry.pt-anon-frankfurt-ipv4
+								  'sdns://gQs4MS43LjExLjI0Ng',				# dnscry.pt-anon-jena-ipv4
+								  'sdns://gQ0yMDIuNjEuMjM2LjY3',			# dnscry.pt-anon-nuremberg-ipv4
+								  'sdns://gQ8xNDYuNzAuODIuMzo0NDM'			# anon-cs-de
+								] },				  
 	# The remainder is dnscry.pt-dusseldorf-ipv4, dnscry.pt-dusseldorf02-ipv4 to be anonymized via dnscry.pt-dusseldorf*
     { server_name='*', via=[											# Dusseldorf
 								  'sdns://AQcAAAAAAAAADTUuMTc1LjE4MC4xNzEg_5w5GH6bnmpKPcqtR58x5VHe2qD5-mSZeGIsqaukhr4ZMi5kbnNjcnlwdC1jZXJ0LmRuc2NyeS5wdA',  # dnscry.pt-dusseldorf-ipv4
@@ -1050,7 +1071,7 @@ privacy_level = 1
 ## Maximum number of recent query log entries to keep in memory
 ## Helps control memory usage on high-traffic servers
 ## Default: 100
-# max_query_log_entries = 100
+max_query_log_entries = 130
 
 ## Maximum memory usage in MB for recent query logs
 ## Automatic cleanup when limit is exceeded
